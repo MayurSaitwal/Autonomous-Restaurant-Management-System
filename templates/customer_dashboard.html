@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard — Saveur</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">🍽 Saveur <span>Restaurant</span></div>
+  <div class="navbar-links" id="navbarLinks"></div>
+</nav>
+
+<div class="dashboard">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Customer Menu</div>
+      <div class="sidebar-link active" onclick="switchTab('menu')" id="nav-menu">
+        <span class="icon">🍜</span> Browse Menu
+      </div>
+      <div class="sidebar-link" onclick="switchTab('cart')" id="nav-cart">
+        <span class="icon">🛒</span> View Cart
+      </div>
+      <div class="sidebar-link" onclick="switchTab('orders')" id="nav-orders">
+        <span class="icon">📋</span> My Orders
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <!-- ── MENU TAB ── -->
+    <div class="tab-pane active" id="tab-menu">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <h2>Browse Menu</h2>
+        <button class="btn btn-outline btn-sm" onclick="openCartCheckout()" id="viewCartBtn">View Cart (0)</button>
+      </div>
+      <p style="color:var(--muted);font-size:0.88rem;margin-top:-0.8rem;margin-bottom:1rem">Add items to cart first, then complete checkout in steps.</p>
+
+      <!-- Category filters -->
+      <div class="menu-filters" id="menuFilters"></div>
+
+      <div class="menu-grid" id="menuGrid">
+      </div>
+    </div>
+
+    <!-- ── CART TAB ── -->
+    <div class="tab-pane" id="tab-cart">
+      <div class="page-header">
+        <h2>Cart & Checkout</h2>
+        <p>Complete your order in 3 steps</p>
+      </div>
+
+      <div class="checkout-steps" id="checkoutSteps">
+        <div class="checkout-step active" id="stepChip1">1. Review Cart</div>
+        <div class="checkout-step" id="stepChip2">2. Order Type</div>
+        <div class="checkout-step" id="stepChip3">3. Table & Confirm</div>
+      </div>
+
+      <div class="checkout-panel" id="checkoutStep1">
+        <h3 style="margin-bottom:0.8rem">Items in Your Cart</h3>
+        <div id="checkoutCartItems"><p class="cart-empty">No items added yet</p></div>
+        <div class="cart-total" id="checkoutTotal" style="display:none;margin-top:0.5rem">
+          <span>Total</span><span id="checkoutTotalAmt">₹0</span>
+        </div>
+        <div style="display:flex;gap:0.6rem;margin-top:1rem;flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="clearCart()">Clear Cart</button>
+          <button class="btn btn-gold" onclick="goToCheckoutStep(2)">Next</button>
+        </div>
+      </div>
+
+      <div class="checkout-panel" id="checkoutStep2" style="display:none">
+        <h3 style="margin-bottom:0.8rem">Select Order Type</h3>
+        <div class="order-type-grid">
+          <button class="order-type-card" id="orderTypeDineIn" onclick="setOrderType('dine_in')">
+            <strong>Dine In</strong>
+            <span>Select table in next step</span>
+          </button>
+          <button class="order-type-card" id="orderTypeHome" onclick="setOrderType('order_home')">
+            <strong>Order At Home</strong>
+            <span>No table required</span>
+          </button>
+        </div>
+        <div style="display:flex;gap:0.6rem;margin-top:1rem;flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="goToCheckoutStep(1)">Back</button>
+          <button class="btn btn-gold" onclick="goToCheckoutStep(3)">Next</button>
+        </div>
+      </div>
+
+      <div class="checkout-panel" id="checkoutStep3" style="display:none">
+        <h3 style="margin-bottom:0.8rem">Finalize Order</h3>
+
+        <div id="dineInBlock" style="display:none">
+          <p style="color:var(--muted);margin-bottom:0.8rem">Choose a table. Current status and availability are shown below.</p>
+          <div class="tables-grid" id="tablesGrid"></div>
+          <p id="selectedTableText" style="margin-top:0.8rem;color:var(--gold)"></p>
+        </div>
+
+        <div id="homeBlock" style="display:none;color:var(--muted)">
+          <p style="margin-bottom:0.8rem">Order will be prepared for home delivery with your registered details.</p>
+          <div class="checkout-panel" style="padding:0.8rem;background:var(--surface2)">
+            <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer">
+              <input type="radio" name="paymentMethod" value="cod" onchange="setPaymentMethod('cod')">
+              <span><strong>Cash on Delivery</strong> (COD)</span>
+            </label>
+            <p style="margin-top:0.5rem;color:var(--muted);font-size:0.82rem">Pay in cash when your order arrives.</p>
+          </div>
+        </div>
+
+        <div style="margin-top:1rem">
+          <label style="display:block;color:var(--muted);font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.4rem">Order Note</label>
+          <textarea class="form-control" id="orderNote" rows="3" placeholder="Add any special instructions for staff."></textarea>
+        </div>
+
+        <div style="display:flex;gap:0.6rem;margin-top:1rem;flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="goToCheckoutStep(2)">Back</button>
+          <button class="btn btn-gold" onclick="placeOrderFromCheckout()">Place Order</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ORDERS TAB ── -->
+    <div class="tab-pane" id="tab-orders">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h2>My Orders</h2>
+          <p>Track your current and past orders</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="refreshOrders()">↻ Refresh</button>
+      </div>
+
+      <div id="ordersList" class="orders-list">
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── Cart State ──────────────────────────────────────────────────────────────
+const cart = {};
+const prices = {};
+const names  = {};
+let checkoutStep = 1;
+let orderType = null;
+let paymentMethod = null;
+let selectedTableId = null;
+let selectedTableNumber = null;
+
+document.querySelectorAll('.menu-item').forEach(el => {
+  const id    = el.dataset.id;
+  prices[id]  = parseFloat(el.dataset.price);
+  names[id]   = el.dataset.name;
+});
+
+function changeQty(id, delta) {
+  const sid = String(id);
+  cart[sid]  = Math.max(0, (cart[sid] || 0) + delta);
+  document.getElementById('qty-' + id).textContent = cart[sid] || 0;
+  renderCart();
+}
+
+function getCartItems() {
+  return Object.entries(cart).filter(([,q]) => q > 0);
+}
+
+function renderCart() {
+  const container = document.getElementById('checkoutCartItems');
+  const totalDiv  = document.getElementById('checkoutTotal');
+  const totalAmt  = document.getElementById('checkoutTotalAmt');
+  const viewCartBtn = document.getElementById('viewCartBtn');
+  const cartCount = getCartItems().reduce((acc, [,q]) => acc + q, 0);
+  viewCartBtn.textContent = `View Cart (${cartCount})`;
+  const items = Object.entries(cart).filter(([,q]) => q > 0);
+
+  if (!items.length) {
+    container.innerHTML = '<p class="cart-empty">No items added yet</p>';
+    totalDiv.style.display = 'none';
+    return;
+  }
+  let html = '', total = 0;
+  items.forEach(([id, qty]) => {
+    const sub = prices[id] * qty;
+    total += sub;
+    html += `<div class="cart-item">
+      <div><div class="cart-item-name">${names[id]}</div>
+      <div class="cart-item-detail">₹${prices[id]} × ${qty}</div></div>
+      <strong>₹${sub.toFixed(0)}</strong>
+    </div>`;
+  });
+  container.innerHTML = html;
+  totalDiv.style.display = 'flex';
+  totalAmt.textContent = '₹' + total.toFixed(0);
+}
+
+function clearCart() {
+  Object.keys(cart).forEach(k => { cart[k] = 0; });
+  document.querySelectorAll('.qty-display').forEach(el => el.textContent = '0');
+  selectedTableId = null;
+  selectedTableNumber = null;
+  renderCart();
+  renderCheckoutStep();
+}
+
+function openCartCheckout() {
+  switchTab('cart');
+  goToCheckoutStep(1);
+}
+
+function goToCheckoutStep(step) {
+  if (step === 2 && !getCartItems().length) {
+    showToast('Add items to cart first.', 'error');
+    return;
+  }
+  if (step === 3 && !orderType) {
+    showToast('Select order type first.', 'error');
+    return;
+  }
+  checkoutStep = step;
+  renderCheckoutStep();
+}
+
+function setOrderType(type) {
+  orderType = type;
+  if (type === 'order_home') {
+    selectedTableId = null;
+    selectedTableNumber = null;
+  } else {
+    paymentMethod = null;
+  }
+  renderCheckoutStep();
+}
+
+function setPaymentMethod(method) {
+  paymentMethod = method;
+}
+
+function selectCheckoutTable(id, tableNumber) {
+  selectedTableId = id;
+  selectedTableNumber = tableNumber;
+  document.querySelectorAll('.checkout-table.available').forEach(el => el.classList.remove('selected'));
+  const selected = document.getElementById('checkoutTable-' + id);
+  if (selected) selected.classList.add('selected');
+  document.getElementById('selectedTableText').textContent = `Selected Table ${tableNumber}`;
+}
+
+function renderCheckoutStep() {
+  document.getElementById('checkoutStep1').style.display = checkoutStep === 1 ? '' : 'none';
+  document.getElementById('checkoutStep2').style.display = checkoutStep === 2 ? '' : 'none';
+  document.getElementById('checkoutStep3').style.display = checkoutStep === 3 ? '' : 'none';
+
+  const chips = [document.getElementById('stepChip1'), document.getElementById('stepChip2'), document.getElementById('stepChip3')];
+  chips.forEach((chip, idx) => {
+    chip.classList.remove('active');
+    chip.classList.remove('done');
+    if (idx + 1 === checkoutStep) chip.classList.add('active');
+    if (idx + 1 < checkoutStep) chip.classList.add('done');
+  });
+
+  document.getElementById('orderTypeDineIn').classList.toggle('active', orderType === 'dine_in');
+  document.getElementById('orderTypeHome').classList.toggle('active', orderType === 'order_home');
+  document.getElementById('dineInBlock').style.display = (checkoutStep === 3 && orderType === 'dine_in') ? '' : 'none';
+  document.getElementById('homeBlock').style.display = (checkoutStep === 3 && orderType === 'order_home') ? '' : 'none';
+}
+
+async function placeOrderFromCheckout() {
+  const items = getCartItems().map(([menu_id, quantity]) => ({ menu_id: parseInt(menu_id), quantity }));
+  if (!items.length) {
+    showToast('Add items to cart first.', 'error');
+    return;
+  }
+  if (!orderType) {
+    showToast('Select order type first.', 'error');
+    return;
+  }
+  if (orderType === 'dine_in' && !selectedTableId) {
+    showToast('Please select an available table.', 'error');
+    return;
+  }
+  if (orderType === 'order_home' && paymentMethod !== 'cod') {
+    showToast('Please select Cash on Delivery.', 'error');
+    return;
+  }
+
+  const res  = await fetch('/place_order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ table_id: selectedTableId, order_type: orderType, payment_method: paymentMethod, note: document.getElementById('orderNote').value.trim(), items })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast('Order placed! #' + data.order_id, 'success');
+    clearCart();
+    orderType = null;
+    paymentMethod = null;
+    checkoutStep = 1;
+    document.getElementById('orderNote').value = '';
+    document.querySelectorAll('input[name="paymentMethod"]').forEach(el => {
+      el.checked = false;
+    });
+    renderCheckoutStep();
+    setTimeout(() => { switchTab('orders'); refreshOrders(); }, 500);
+  } else {
+    showToast(data.message, 'error');
+  }
+}
+
+// ── Menu Filter ─────────────────────────────────────────────────────────────
+function filterMenu(cat, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.menu-item').forEach(el => {
+    el.style.display = (cat === 'all' || el.dataset.category === cat) ? '' : 'none';
+  });
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+
+function bindMenuButtons() {
+  document.querySelectorAll('.js-qty-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = parseInt(btn.dataset.itemId || '0', 10);
+      const delta = parseInt(btn.dataset.delta || '0', 10);
+      if (!id || !delta) return;
+      changeQty(id, delta);
+    });
+  });
+}
+
+function bindTableButtons() {
+  document.querySelectorAll('.checkout-table.available').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = parseInt(card.dataset.tableId || '0', 10);
+      const tableNumber = parseInt(card.dataset.tableNumber || '0', 10);
+      if (!id || !tableNumber) return;
+      selectCheckoutTable(id, tableNumber);
+    });
+  });
+}
+
+function renderMenu(items, categories) {
+  const filters = document.getElementById('menuFilters');
+  filters.innerHTML = `<button class="filter-btn active" onclick="filterMenu('all', this)">All</button>` +
+    categories.map(cat => `<button class="filter-btn" onclick="filterMenu('${cat.replace(/'/g, "\\'")}', this)">${cat}</button>`).join('');
+
+  const menuGrid = document.getElementById('menuGrid');
+  menuGrid.innerHTML = items.map(item => `
+    <div class="menu-item" data-category="${item.category || ''}" data-id="${item.id}" data-name="${item.name || ''}" data-price="${item.price || 0}">
+      <div class="menu-item-name">${item.name || ''}</div>
+      <div class="menu-item-cat">${item.category || ''}</div>
+      <div class="menu-item-desc">${item.description || ''}</div>
+      <div class="menu-item-footer">
+        <span class="menu-price">₹${Number(item.price || 0).toFixed(0)}</span>
+        <div class="qty-control">
+          <button class="qty-btn js-qty-btn" data-item-id="${item.id}" data-delta="-1">−</button>
+          <span class="qty-display" id="qty-${item.id}">0</span>
+          <button class="qty-btn js-qty-btn" data-item-id="${item.id}" data-delta="1">+</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  items.forEach(item => {
+    prices[String(item.id)] = parseFloat(item.price || 0);
+    names[String(item.id)] = item.name || '';
+  });
+  bindMenuButtons();
+}
+
+function renderTables(tables) {
+  const container = document.getElementById('tablesGrid');
+  container.innerHTML = tables.map(t => `
+    <div class="table-card ${t.status || ''} checkout-table ${t.status === 'available' ? 'available' : ''}" id="checkoutTable-${t.id}"
+      data-table-id="${t.id}" data-table-number="${t.table_number}">
+      <div class="table-num">${t.table_number}</div>
+      <div class="table-cap">📍 ${t.location || 'Main Hall'}</div>
+      <div class="table-cap">👥 ${t.capacity || 'N/A'} seats</div>
+      <div class="table-status">${t.status === 'available' ? 'Available' : t.status === 'reserved' ? 'Reserved' : 'Occupied'}</div>
+    </div>
+  `).join('');
+  bindTableButtons();
+}
+
+function renderOrders(orders) {
+  const container = document.getElementById('ordersList');
+  if (!orders.length) {
+    container.innerHTML = '<div style="color:var(--muted);text-align:center;padding:3rem 0"><div style="font-size:2.5rem;margin-bottom:0.5rem">🍽</div><p>No orders yet. Browse the menu and place your first order!</p></div>';
+    return;
+  }
+  container.innerHTML = orders.map(order => `
+    <div class="order-card ${order.status}">
+      <div class="order-header">
+        <span class="order-id">Order #${order.id}</span>
+        <span class="badge badge-${order.status}">${(order.status || '').charAt(0).toUpperCase() + (order.status || '').slice(1)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.5rem;margin:0.6rem 0 0.8rem;color:var(--muted);font-size:0.82rem">
+        <div><strong style="color:var(--light)">Name:</strong> ${order.full_name || ''}</div>
+        <div><strong style="color:var(--light)">Phone:</strong> ${order.phone || ''}</div>
+        <div><strong style="color:var(--light)">Email:</strong> ${order.email || ''}</div>
+        <div><strong style="color:var(--light)">Address:</strong> ${order.address || ''}</div>
+        <div><strong style="color:var(--light)">Order Type:</strong> ${order.order_type || 'dine_in'}</div>
+        <div><strong style="color:var(--light)">Payment:</strong> ${order.payment_method || 'N/A'}</div>
+      </div>
+      ${order.note ? `<div style="color:var(--gold-lt);font-size:0.82rem;margin-bottom:0.5rem"><strong>Note:</strong> ${order.note}</div>` : ''}
+      ${order.table_number ? `<div style="color:var(--muted);font-size:0.82rem;margin-bottom:0.5rem">🪑 Table ${order.table_number} • ${order.table_location || 'Main Hall'} • ${order.table_capacity || 'N/A'} seats • ${order.table_status || 'available'}</div>` : ''}
+      <div class="order-items-list">
+        ${(order.items || []).map(i => `• ${i.item_name} × ${i.quantity} — ₹${(Number(i.unit_price || 0) * Number(i.quantity || 0)).toFixed(0)}`).join('<br>')}
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:0.75rem;align-items:center">
+        <span style="color:var(--gold);font-weight:700">Total: ₹${Number(order.total_amount || 0).toFixed(0)}</span>
+        <span style="font-size:0.78rem;color:var(--muted)">${order.created_at || ''}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadDashboardData() {
+  const res = await fetch('/dashboard_data');
+  const data = await res.json();
+  renderMenu(data.menu || [], data.categories || []);
+  renderTables(data.tables || []);
+  renderOrders(data.orders || []);
+  const title = data.user_name ? `Dashboard — ${data.user_name}` : 'Dashboard — Saveur';
+  document.title = title;
+}
+
+// ── Refresh Orders ────────────────────────────────────────────────────────
+async function refreshOrders() {
+  const res = await fetch('/my_orders');
+  const data = await res.json();
+  renderOrders(data || []);
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────
+function showToast(msg, type='info') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// Auto-refresh orders every 30s
+setInterval(() => {
+  const pane = document.getElementById('tab-orders');
+  if (pane.classList.contains('active')) refreshOrders();
+}, 30000);
+
+renderCart();
+renderCheckoutStep();
+loadDashboardData();
+</script>
+</body>
+</html>

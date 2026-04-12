@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Dashboard — Saveur</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">⚙️ Saveur <span>Staff Portal</span></div>
+  <div class="navbar-links">
+    <span class="nav-user">👷 Staff</span>
+    <a href="{{ url_for('staff_logout') }}">Sign Out</a>
+  </div>
+</nav>
+
+<div class="dashboard">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Staff Menu</div>
+      <div class="sidebar-link active" onclick="switchTab('all')" id="nav-all">
+        <span class="icon">📋</span> All Orders
+      </div>
+      <div class="sidebar-link" onclick="switchTab('pending')" id="nav-pending">
+        <span class="icon">⏳</span> Pending
+      </div>
+      <div class="sidebar-link" onclick="switchTab('preparing')" id="nav-preparing">
+        <span class="icon">🔥</span> Preparing
+      </div>
+      <div class="sidebar-link" onclick="switchTab('ready')" id="nav-ready">
+        <span class="icon">✅</span> Ready
+      </div>
+      <div class="sidebar-link" onclick="switchTab('completed')" id="nav-completed">
+        <span class="icon">🏁</span> Completed
+      </div>
+      <div class="sidebar-link" onclick="switchTab('tables')" id="nav-tables">
+        <span class="icon">🪑</span> Table Management
+      </div>
+      <div class="sidebar-link" onclick="switchTab('menu')" id="nav-menu">
+        <span class="icon">🍽</span> Menu Management
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+      <div>
+        <h2 style="font-family:'Playfair Display',serif;color:var(--gold);font-size:1.6rem" id="tabTitle">All Orders</h2>
+        <p style="color:var(--muted);font-size:0.88rem;margin-top:0.25rem">Manage and update customer orders</p>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="loadOrders()">↻ Refresh</button>
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem" id="statsRow">
+      <div class="card"><div class="card-body" style="text-align:center">
+        <div style="font-size:1.6rem;font-weight:700;color:var(--gold)" id="stat-pending">0</div>
+        <div style="color:var(--muted);font-size:0.8rem">Pending</div>
+      </div></div>
+      <div class="card"><div class="card-body" style="text-align:center">
+        <div style="font-size:1.6rem;font-weight:700;color:#74b9e7" id="stat-preparing">0</div>
+        <div style="color:var(--muted);font-size:0.8rem">Preparing</div>
+      </div></div>
+      <div class="card"><div class="card-body" style="text-align:center">
+        <div style="font-size:1.6rem;font-weight:700;color:#6fcf97" id="stat-ready">0</div>
+        <div style="color:var(--muted);font-size:0.8rem">Ready</div>
+      </div></div>
+      <div class="card"><div class="card-body" style="text-align:center">
+        <div style="font-size:1.6rem;font-weight:700;color:var(--muted)" id="stat-completed">0</div>
+        <div style="color:var(--muted);font-size:0.8rem">Completed</div>
+      </div></div>
+    </div>
+
+    <div id="ordersContainer"></div>
+
+    <div id="tablesPane" style="display:none;margin-top:1.2rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <div>
+          <h2 style="font-family:'Playfair Display',serif;color:var(--gold);font-size:1.6rem">Table Management</h2>
+          <p style="color:var(--muted);font-size:0.88rem;margin-top:0.25rem">Update table location and status. Changes are visible in customer dine-in checkout.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadTables()">↻ Refresh</button>
+      </div>
+      <div id="tablesMgmtContainer" class="tables-grid"></div>
+    </div>
+
+    <div id="menuPane" style="display:none;margin-top:1.2rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <div>
+          <h2 style="font-family:'Playfair Display',serif;color:var(--gold);font-size:1.6rem">Menu Management</h2>
+          <p style="color:var(--muted);font-size:0.88rem;margin-top:0.25rem">View all menu items, modify prices/details, and add new items.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadMenuItems()">↻ Refresh</button>
+      </div>
+
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><h3>Add New Menu Item</h3></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Name</label>
+              <input type="text" class="form-control" id="newMenuName" placeholder="Item name">
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <input type="text" class="form-control" id="newMenuCategory" placeholder="Category">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Price</label>
+              <input type="number" step="0.01" class="form-control" id="newMenuPrice" placeholder="0.00">
+            </div>
+            <div class="form-group" style="display:flex;align-items:end;gap:0.5rem">
+              <label style="display:flex;align-items:center;gap:0.5rem;margin:0">
+                <input type="checkbox" id="newMenuAvailable" checked>
+                <span>Available</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea class="form-control" id="newMenuDescription" rows="2" placeholder="Short description"></textarea>
+          </div>
+          <button class="btn btn-gold" onclick="addMenuItem()">Add Item</button>
+        </div>
+      </div>
+
+      <div id="menuMgmtContainer" class="menu-grid"></div>
+    </div>
+  </main>
+</div>
+
+<!-- EDIT ORDER MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit Order <span id="editOrderId"></span></h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="editModalBody">
+      <!-- populated dynamically -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-outline" style="border-color:#c0392b;color:#ffb3b3" onclick="deleteCurrentOrder()">Delete Order</button>
+      <button class="btn btn-gold" onclick="saveOrderEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let allOrders = [];
+let currentFilter = 'all';
+let editingOrderId = null;
+let staffTables = [];
+let staffMenuItems = [];
+
+// ── Load Orders ────────────────────────────────────────────────────────────
+async function loadOrders() {
+  const res = await fetch('/staff/orders_json');
+  allOrders = await res.json();
+  updateStats();
+  renderOrders();
+}
+
+async function loadInitialData() {
+  await Promise.all([
+    loadOrders(),
+    loadTables(),
+    loadMenuItems()
+  ]);
+}
+
+function updateStats() {
+  ['pending','preparing','ready','completed'].forEach(s => {
+    document.getElementById('stat-' + s).textContent =
+      allOrders.filter(o => o.status === s).length;
+  });
+}
+
+function renderOrders() {
+  const filtered = currentFilter === 'all'
+    ? allOrders
+    : allOrders.filter(o => o.status === currentFilter);
+
+  const container = document.getElementById('ordersContainer');
+  if (!filtered.length) {
+    container.innerHTML = `<div style="color:var(--muted);text-align:center;padding:3rem">
+      <div style="font-size:2rem">📭</div><p style="margin-top:0.5rem">No orders in this category</p></div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(order => `
+    <div class="staff-order-card" id="orderCard-${order.id}">
+      <div class="staff-order-header">
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <strong style="font-size:1rem">#${order.id}</strong>
+          <span class="badge badge-${order.status}">${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
+          ${order.table_number ? `<span style="font-size:0.82rem;color:var(--muted)">🪑 Table ${order.table_number} • ${order.table_location || 'Main Hall'} • ${order.table_capacity || 'N/A'} seats • ${order.table_status || 'available'}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center">
+          <select class="status-select" onchange="updateStatus(${order.id}, this.value)">
+            ${['pending','preparing','ready','completed'].map(s =>
+              `<option value="${s}" ${order.status===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`
+            ).join('')}
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="openEditModal(${order.id})">✏️ Edit</button>
+        </div>
+      </div>
+      <div class="staff-order-body">
+        <div class="info-row">
+          <div class="info-item">
+            <label>Customer</label>
+            <span>${order.full_name}</span>
+          </div>
+          <div class="info-item">
+            <label>Phone</label>
+            <span>${order.phone}</span>
+          </div>
+          <div class="info-item">
+            <label>Email</label>
+            <span>${order.email}</span>
+          </div>
+          <div class="info-item">
+            <label>Address</label>
+            <span>${order.address || ''}</span>
+          </div>
+          <div class="info-item">
+            <label>Order Type</label>
+            <span>${order.order_type || 'dine_in'}</span>
+          </div>
+          <div class="info-item">
+            <label>Payment</label>
+            <span>${order.payment_method || 'N/A'}</span>
+          </div>
+          <div class="info-item">
+            <label>Placed At</label>
+            <span>${order.created_at}</span>
+          </div>
+        </div>
+        ${order.note ? `<div style="margin-bottom:0.75rem;padding:0.7rem 0.8rem;border:1px solid var(--border);border-radius:8px;background:rgba(201,168,76,0.06);color:var(--gold-lt);font-size:0.85rem"><strong>Note:</strong> ${order.note}</div>` : ''}
+        ${order.table_number ? `<div style="margin-bottom:0.75rem;padding:0.7rem 0.8rem;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,0.02)">
+          <div style="font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Selected Table Details</div>
+          <div class="info-row" style="margin-bottom:0">
+            <div class="info-item"><label>Table</label><span>${order.table_number}</span></div>
+            <div class="info-item"><label>Location</label><span>${order.table_location || 'Main Hall'}</span></div>
+            <div class="info-item"><label>Capacity</label><span>${order.table_capacity || 'N/A'} seats</span></div>
+            <div class="info-item"><label>Status</label><span>${order.table_status || 'available'}</span></div>
+          </div>
+        </div>` : ''}
+        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:0.75rem">
+          <div style="font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Items Ordered</div>
+          ${order.items.map(i => `
+            <div style="display:flex;justify-content:space-between;font-size:0.88rem;padding:0.25rem 0;border-bottom:1px solid var(--border)">
+              <span>${i.item_name} <span style="color:var(--muted)">× ${i.quantity}</span></span>
+              <span style="color:var(--gold)">₹${(i.unit_price * i.quantity).toFixed(0)}</span>
+            </div>`).join('')}
+          <div style="display:flex;justify-content:flex-end;font-weight:700;color:var(--gold);margin-top:0.5rem">
+            Total: ₹${parseFloat(order.total_amount).toFixed(0)}
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderTables() {
+  const container = document.getElementById('tablesMgmtContainer');
+  if (!staffTables.length) {
+    container.innerHTML = '<p style="color:var(--muted)">No tables found.</p>';
+    return;
+  }
+
+  container.innerHTML = staffTables.map(t => `
+    <div class="table-card" style="cursor:default;text-align:left;padding:0.8rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+        <strong>Table ${t.table_number}</strong>
+        <span class="badge badge-${t.status}">${t.status}</span>
+      </div>
+      <label style="color:var(--muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em">Location</label>
+      <input class="form-control" id="tableLoc-${t.id}" value="${t.location || ''}" style="margin:0.3rem 0 0.6rem">
+      <label style="color:var(--muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em">Status</label>
+      <select class="status-select" id="tableStatus-${t.id}" style="width:100%;margin-top:0.3rem">
+        ${['available', 'reserved', 'occupied'].map(s => `<option value="${s}" ${t.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
+      </select>
+      <button class="btn btn-gold btn-sm" style="margin-top:0.7rem;width:100%" onclick="updateTable(${t.id})">Save Table</button>
+    </div>
+  `).join('');
+}
+
+function renderMenuItems() {
+  const container = document.getElementById('menuMgmtContainer');
+  if (!staffMenuItems.length) {
+    container.innerHTML = '<p style="color:var(--muted)">No menu items found.</p>';
+    return;
+  }
+
+  container.innerHTML = staffMenuItems.map(item => `
+    <div class="menu-item" style="border-color:var(--border)">
+      <div class="form-group" style="margin-bottom:0.5rem">
+        <label>Name</label>
+        <input class="form-control" id="menuName-${item.id}" value="${item.name || ''}">
+      </div>
+      <div class="form-group" style="margin-bottom:0.5rem">
+        <label>Category</label>
+        <input class="form-control" id="menuCategory-${item.id}" value="${item.category || ''}">
+      </div>
+      <div class="form-group" style="margin-bottom:0.5rem">
+        <label>Price</label>
+        <input type="number" step="0.01" class="form-control" id="menuPrice-${item.id}" value="${item.price}">
+      </div>
+      <div class="form-group" style="margin-bottom:0.5rem">
+        <label>Description</label>
+        <textarea class="form-control" id="menuDesc-${item.id}" rows="2">${item.description || ''}</textarea>
+      </div>
+      <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem">
+        <input type="checkbox" id="menuAvail-${item.id}" ${item.available ? 'checked' : ''}>
+        <span>Available</span>
+      </label>
+      <button class="btn btn-gold btn-sm" style="width:100%" onclick="updateMenuItem(${item.id})">Save Item</button>
+    </div>
+  `).join('');
+}
+
+async function loadMenuItems() {
+  const res = await fetch('/staff/menu_json');
+  staffMenuItems = await res.json();
+  renderMenuItems();
+}
+
+async function updateMenuItem(itemId) {
+  const payload = {
+    item_id: itemId,
+    name: document.getElementById('menuName-' + itemId).value.trim(),
+    category: document.getElementById('menuCategory-' + itemId).value.trim(),
+    price: document.getElementById('menuPrice-' + itemId).value,
+    description: document.getElementById('menuDesc-' + itemId).value.trim(),
+    available: document.getElementById('menuAvail-' + itemId).checked
+  };
+
+  const res = await fetch('/staff/update_menu_item', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast('Menu item updated.', 'success');
+    loadMenuItems();
+  } else {
+    showToast(data.message || 'Update failed.', 'error');
+  }
+}
+
+async function addMenuItem() {
+  const payload = {
+    name: document.getElementById('newMenuName').value.trim(),
+    category: document.getElementById('newMenuCategory').value.trim(),
+    price: document.getElementById('newMenuPrice').value,
+    description: document.getElementById('newMenuDescription').value.trim(),
+    available: document.getElementById('newMenuAvailable').checked
+  };
+
+  const res = await fetch('/staff/add_menu_item', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast('New menu item added.', 'success');
+    document.getElementById('newMenuName').value = '';
+    document.getElementById('newMenuCategory').value = '';
+    document.getElementById('newMenuPrice').value = '';
+    document.getElementById('newMenuDescription').value = '';
+    document.getElementById('newMenuAvailable').checked = true;
+    loadMenuItems();
+  } else {
+    showToast(data.message || 'Unable to add menu item.', 'error');
+  }
+}
+
+async function loadTables() {
+  const res = await fetch('/staff/tables_json');
+  staffTables = await res.json();
+  renderTables();
+}
+
+async function updateTable(tableId) {
+  const location = document.getElementById('tableLoc-' + tableId).value.trim();
+  const status = document.getElementById('tableStatus-' + tableId).value;
+  if (!location) {
+    showToast('Location is required.', 'error');
+    return;
+  }
+  const res = await fetch('/staff/update_table', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ table_id: tableId, location, status })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast('Table updated successfully.', 'success');
+    loadTables();
+  } else {
+    showToast(data.message || 'Table update failed.', 'error');
+  }
+}
+
+// ── Status Update ─────────────────────────────────────────────────────────
+async function updateStatus(orderId, status) {
+  const res = await fetch('/staff/update_status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order_id: orderId, status })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast(`Order #${orderId} → ${status}`, 'success');
+    loadOrders();
+  } else {
+    showToast('Update failed', 'error');
+  }
+}
+
+// ── Edit Modal ────────────────────────────────────────────────────────────
+function openEditModal(orderId) {
+  editingOrderId = orderId;
+  const order = allOrders.find(o => o.id === orderId);
+  document.getElementById('editOrderId').textContent = `#${orderId}`;
+
+  // Build current qty map
+  const qtyMap = {};
+  order.items.forEach(i => { qtyMap[i.menu_id] = i.quantity; });
+
+  const grouped = {};
+  staffMenuItems.forEach(m => {
+    if (!grouped[m.category]) grouped[m.category] = [];
+    grouped[m.category].push(m);
+  });
+
+  let html = '';
+  Object.entries(grouped).forEach(([cat, items]) => {
+    html += `<div style="margin-bottom:1rem">
+      <div style="color:var(--muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border)">${cat}</div>`;
+    items.forEach(m => {
+      const qty = qtyMap[m.id] || 0;
+      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0">
+        <div>
+          <span style="font-size:0.9rem">${m.name}</span>
+          <span style="color:var(--muted);font-size:0.8rem;margin-left:0.5rem">₹${m.price}</span>
+        </div>
+        <div class="qty-control">
+          <button class="qty-btn" onclick="editQty(${m.id},${m.price},-1,'${m.name}')">−</button>
+          <span class="qty-display" id="editQty-${m.id}">${qty}</span>
+          <button class="qty-btn" onclick="editQty(${m.id},${m.price},1,'${m.name}')">+</button>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  document.getElementById('editModalBody').innerHTML = html;
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('open');
+  editingOrderId = null;
+}
+
+function editQty(id, price, delta, name) {
+  const el = document.getElementById('editQty-' + id);
+  el.textContent = Math.max(0, parseInt(el.textContent) + delta);
+}
+
+async function saveOrderEdit() {
+  const items = [];
+  staffMenuItems.forEach(m => {
+    const el = document.getElementById('editQty-' + m.id);
+    if (el) {
+      const qty = parseInt(el.textContent);
+      if (qty > 0) items.push({ menu_id: m.id, quantity: qty });
+    }
+  });
+
+  if (!items.length) {
+    showToast('Add at least one item.', 'error');
+    return;
+  }
+
+  const res = await fetch('/staff/update_order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order_id: editingOrderId, items })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast('Order updated! New total: ₹' + data.total.toFixed(0), 'success');
+    closeModal();
+    loadOrders();
+  } else {
+    showToast('Update failed', 'error');
+  }
+}
+
+async function deleteCurrentOrder() {
+  if (!editingOrderId) {
+    showToast('No order selected.', 'error');
+    return;
+  }
+  if (!confirm(`Delete order #${editingOrderId}? This cannot be undone.`)) {
+    return;
+  }
+
+  const res = await fetch('/staff/delete_order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order_id: editingOrderId })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showToast(`Order #${editingOrderId} deleted.`, 'success');
+    closeModal();
+    loadOrders();
+  } else {
+    showToast('Delete failed', 'error');
+  }
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+const tabTitles = { all:'All Orders', pending:'Pending Orders', preparing:'Orders Preparing', ready:'Ready to Serve', completed:'Completed Orders' };
+
+function switchTab(name) {
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'tables') {
+    document.getElementById('tabTitle').textContent = 'Table Management';
+    document.getElementById('ordersContainer').style.display = 'none';
+    document.getElementById('tablesPane').style.display = '';
+    document.getElementById('menuPane').style.display = 'none';
+    renderTables();
+    return;
+  }
+  if (name === 'menu') {
+    document.getElementById('tabTitle').textContent = 'Menu Management';
+    document.getElementById('ordersContainer').style.display = 'none';
+    document.getElementById('tablesPane').style.display = 'none';
+    document.getElementById('menuPane').style.display = '';
+    renderMenuItems();
+    return;
+  }
+  currentFilter = name;
+  document.getElementById('tabTitle').textContent = tabTitles[name];
+  document.getElementById('ordersContainer').style.display = '';
+  document.getElementById('tablesPane').style.display = 'none';
+  document.getElementById('menuPane').style.display = 'none';
+  renderOrders();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function showToast(msg, type='info') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// Close modal on overlay click
+document.getElementById('editModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────
+loadInitialData();
+document.getElementById('tablesPane').style.display = 'none';
+document.getElementById('menuPane').style.display = 'none';
+setInterval(loadOrders, 20000); // auto-refresh every 20s
+</script>
+</body>
+</html>
