@@ -1,8 +1,7 @@
-<<<<<<< HEAD
+
 # Autonomous-Restaurant-Management-System
-=======
 # 🍽 Saveur — Restaurant Management System
-### Flask + MySQL Mini Project
+
 
 ---
 
