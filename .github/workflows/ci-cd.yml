@@ -4,15 +4,17 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
 
+
 jobs:
 
-  # =========================
-  # CI
-  # =========================
+  # =========================================================
+  # CI - TEST AND BUILD
+  # =========================================================
   test:
     name: CI - Test and Build
     runs-on: ubuntu-latest
@@ -45,13 +47,17 @@ jobs:
             -t mayursaitwal/restaurant-image:${{ github.sha }} \
             .
 
-  # =========================
-  # CD
-  # =========================
+
+  # =========================================================
+  # CD - PUSH IMAGE TO DOCKER HUB
+  # =========================================================
   push-image:
     name: CD - Push Docker Image
+
     needs: test
+
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     runs-on: ubuntu-latest
 
     steps:
@@ -79,3 +85,167 @@ jobs:
       - name: Push versioned image
         run: |
           docker push mayursaitwal/restaurant-image:${{ github.sha }}
+
+
+  # =========================================================
+  # CD - DEPLOY TO KIND KUBERNETES
+  # =========================================================
+  deploy-to-kind:
+    name: CD - Deploy to Kind Kubernetes
+
+    needs: push-image
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    runs-on: self-hosted
+
+    steps:
+
+      # -------------------------------------------------------
+      # Checkout repository
+      # -------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      # -------------------------------------------------------
+      # Check Docker
+      # -------------------------------------------------------
+      - name: Check Docker
+        shell: powershell
+        run: |
+          docker --version
+          docker ps
+
+
+      # -------------------------------------------------------
+      # Check Kind
+      # -------------------------------------------------------
+      - name: Check Kind cluster
+        shell: powershell
+        run: |
+          kind version
+          kind get clusters
+
+
+      # -------------------------------------------------------
+      # Check Kubernetes
+      # -------------------------------------------------------
+      - name: Check Kubernetes
+        shell: powershell
+        run: |
+          kubectl version --client
+          kubectl get nodes
+
+
+      # -------------------------------------------------------
+      # Pull exact Docker image from Docker Hub
+      # -------------------------------------------------------
+      - name: Pull Docker image
+        shell: powershell
+        run: |
+          docker pull mayursaitwal/restaurant-image:${{ github.sha }}
+
+
+      # -------------------------------------------------------
+      # Load exact image into Kind
+      # -------------------------------------------------------
+      - name: Load image into Kind
+        shell: powershell
+        run: |
+          kind load docker-image mayursaitwal/restaurant-image:${{ github.sha }}
+
+
+      # -------------------------------------------------------
+      # Create / Update Namespace
+      # -------------------------------------------------------
+      - name: Deploy Namespace
+        shell: powershell
+        run: |
+          kubectl apply -f k8s/namespace.yml
+
+
+      # -------------------------------------------------------
+      # Deploy MySQL Secret
+      # -------------------------------------------------------
+      - name: Deploy MySQL Secret
+        shell: powershell
+        run: |
+          kubectl apply -f k8s/mysql-secret.yml
+
+
+      # -------------------------------------------------------
+      # Deploy MySQL Persistent Volume Claim
+      # -------------------------------------------------------
+      - name: Deploy MySQL PVC
+        shell: powershell
+        run: |
+          kubectl apply -f k8s/pvc.yml
+
+
+      # -------------------------------------------------------
+      # Deploy MySQL
+      # -------------------------------------------------------
+      - name: Deploy MySQL
+        shell: powershell
+        run: |
+          kubectl apply -f k8s/mysql-deployment.yml
+          kubectl apply -f k8s/mysql-service.yml
+
+
+      # -------------------------------------------------------
+      # Deploy Flask
+      # -------------------------------------------------------
+      - name: Deploy Flask
+        shell: powershell
+        run: |
+          kubectl apply -f k8s/flask-deployment.yml
+          kubectl apply -f k8s/flask-service.yml
+
+
+      # -------------------------------------------------------
+      # Update Flask to exact Git commit image
+      # -------------------------------------------------------
+      - name: Update Flask Docker Image
+        shell: powershell
+        run: |
+          kubectl set image deployment/flask-app flask-app=mayursaitwal/restaurant-image:${{ github.sha }} -n restaurant
+
+
+      # -------------------------------------------------------
+      # Wait for Flask rollout
+      # -------------------------------------------------------
+      - name: Wait for Flask Deployment
+        shell: powershell
+        run: |
+          kubectl rollout status deployment/flask-app -n restaurant --timeout=120s
+
+
+      # -------------------------------------------------------
+      # Verify Pods
+      # -------------------------------------------------------
+      - name: Verify Pods
+        shell: powershell
+        run: |
+          Write-Host "===== PODS ====="
+          kubectl get pods -n restaurant
+
+
+      # -------------------------------------------------------
+      # Verify Deployments
+      # -------------------------------------------------------
+      - name: Verify Deployments
+        shell: powershell
+        run: |
+          Write-Host "===== DEPLOYMENTS ====="
+          kubectl get deployments -n restaurant
+
+
+      # -------------------------------------------------------
+      # Verify Services
+      # -------------------------------------------------------
+      - name: Verify Services
+        shell: powershell
+        run: |
+          Write-Host "===== SERVICES ====="
+          kubectl get services -n restaurant
