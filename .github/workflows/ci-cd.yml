@@ -153,7 +153,7 @@ jobs:
       - name: Load image into Kind
         shell: powershell
         run: |
-          kind load docker-image mayursaitwal/restaurant-image:${{ github.sha }}
+          kind load docker-image mayursaitwal/restaurant-image:${{ github.sha }} --name kind
 
 
       # -------------------------------------------------------
