@@ -16,7 +16,7 @@ spec:
       containers:
         - name: flask-app
           image: mayursaitwal/restaurant-image:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
           env:
