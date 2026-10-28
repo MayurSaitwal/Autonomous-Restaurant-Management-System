@@ -1,6 +1,6 @@
 
 # Autonomous-Restaurant-Management-System
-# 🍽 Saveur — Restaurant Management 
+# 🍽 Saveur — Restaurant Management System
 
 
 ---
